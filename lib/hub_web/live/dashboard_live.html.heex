@@ -1,0 +1,94 @@
+<div class="min-h-screen bg-gray-950 text-white">
+
+  <%!-- Header --%>
+  <header class="sticky top-0 z-50 bg-gray-900 border-b border-gray-800 px-8 py-4">
+    <div class="grid grid-cols-3 items-center max-w-screen-2xl mx-auto">
+
+      <%!-- Left: title --%>
+      <h1 class="text-2xl font-bold tracking-tight">🧠 CLAUDE HQ</h1>
+
+      <%!-- Center: hours --%>
+      <div class="flex items-center justify-center gap-5">
+        <div class="flex flex-col items-center leading-tight">
+          <span class="text-lg font-bold text-white font-mono">{@week_hours}</span>
+          <span class="text-xs text-gray-500 uppercase tracking-wide">this week</span>
+        </div>
+        <div class="w-px h-8 bg-gray-700"></div>
+        <div class="flex flex-col items-center leading-tight">
+          <span class="text-lg font-bold text-gray-400 font-mono">{@total_hours}</span>
+          <span class="text-xs text-gray-500 uppercase tracking-wide">all time</span>
+        </div>
+      </div>
+
+      <%!-- Right: count · date · new group --%>
+      <div class="flex items-center justify-end gap-4">
+        <span class="text-sm text-gray-500 font-mono">{@total_projects} projects</span>
+        <span class="text-sm text-gray-600">{Calendar.strftime(Date.utc_today(), "%b %d, %Y")}</span>
+        <button
+          phx-click="start_add_group"
+          phx-value-parent_id="root"
+          class="text-sm bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          + New Group
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <%!-- Filter pills --%>
+  <div class="bg-gray-900 border-b border-gray-800 px-8 py-3">
+    <div class="max-w-screen-2xl mx-auto flex items-center gap-2">
+      <span class="text-xs text-gray-500 mr-1">Show:</span>
+
+      <button
+        phx-click="clear_filters"
+        class={[
+          "px-3 py-1 rounded-full text-xs font-medium transition-colors",
+          if(@filters == [], do: "bg-indigo-600 text-white", else: "bg-gray-800 text-gray-400 hover:bg-gray-700")
+        ]}
+      >
+        All
+      </button>
+
+      <%= for {key, label} <- [active: "🟢 Active", planning: "🟡 Planning", paused: "🔴 Paused", live: "✅ Live"] do %>
+        <button
+          phx-click="toggle_filter"
+          phx-value-status={key}
+          class={[
+            "px-3 py-1 rounded-full text-xs font-medium transition-colors",
+            if(key in @filters, do: filter_active_class(key), else: "bg-gray-800 text-gray-400 hover:bg-gray-700")
+          ]}
+        >
+          {label}
+        </button>
+      <% end %>
+
+      <form phx-change="search" class="relative ml-auto">
+        <input
+          type="text"
+          name="q"
+          value={@search}
+          placeholder="Search projects..."
+          class="bg-gray-800 border border-gray-700 text-gray-300 text-xs rounded-lg px-3 py-1 pl-7 w-44 focus:outline-none focus:border-indigo-500 transition-colors"
+        />
+        <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">🔍</span>
+      </form>
+    </div>
+  </div>
+
+  <%!-- Main content --%>
+  <main class="max-w-screen-2xl mx-auto px-8 py-6">
+    <.group_list
+      groups={@grouped}
+      uncategorized={@uncategorized}
+      expanded={@expanded}
+      filters={@filters}
+      search={@search}
+      editing_group={@editing_group}
+      adding_to={@adding_to}
+      group_options={@group_options}
+    />
+  </main>
+
+</div>

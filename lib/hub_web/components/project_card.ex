@@ -1,0 +1,165 @@
+defmodule HubWeb.ProjectCard do
+  use Phoenix.Component
+
+  # ---------------------------------------------------------------------------
+  # Full card (leaf level)
+  # ---------------------------------------------------------------------------
+
+  attr :project,       :map,  required: true
+  attr :group_options, :list, default: []
+
+  def project_card(assigns) do
+    ~H"""
+    <div
+      id={"card-#{@project.folder}"}
+      class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col gap-3 hover:border-gray-600 transition-colors"
+    >
+      <div class="flex items-start justify-between gap-2">
+        <h3 class="text-base font-semibold leading-tight">{@project.name}</h3>
+        <span class={["text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap", status_color(@project.status_key)]}>
+          {status_emoji(@project.status_key)} {status_label(@project.status)}
+        </span>
+      </div>
+
+      <%= if @project.live_url do %>
+        <p class="text-xs text-blue-400">{@project.live_url}</p>
+      <% end %>
+
+      <%= if @project.tasks_total > 0 do %>
+        <div>
+          <div class="flex justify-between text-xs text-gray-400 mb-1">
+            <span>{@project.tasks_done} of {@project.tasks_total} tasks</span>
+            <span class="font-mono">{@project.progress}%</span>
+          </div>
+          <div class="w-full bg-gray-800 rounded-full h-2">
+            <div
+              class={["h-2 rounded-full transition-all", progress_color(@project.progress)]}
+              style={"width: #{@project.progress}%"}
+            />
+          </div>
+        </div>
+      <% end %>
+
+      <%= if @project.next_action do %>
+        <p class="text-sm text-gray-300 leading-snug line-clamp-2">
+          <span class="text-gray-500 text-xs">Next: </span>{@project.next_action}
+        </p>
+      <% end %>
+
+      <div class="text-xs text-gray-500 space-y-0.5 mt-auto">
+        <p>Started {format_date(@project.started)} · {@project.days_active}d active</p>
+        <p class="truncate">{@project.stack}</p>
+      </div>
+
+      <%= if length(@group_options) > 0 do %>
+        <form phx-change="move_card">
+          <input type="hidden" name="folder" value={@project.folder} />
+          <select
+            name="to_group_id"
+            class="w-full bg-gray-800 border border-gray-700 text-gray-300 text-xs rounded-lg px-2 py-1.5 cursor-pointer hover:border-gray-500 transition-colors"
+          >
+            <option value="">Move to...</option>
+            <option value="uncategorized">— Uncategorized —</option>
+            <%= for {id, name, depth} <- @group_options do %>
+              <option value={id}>{indent(depth)}{name}</option>
+            <% end %>
+          </select>
+        </form>
+      <% end %>
+
+      <button
+        phx-click="open_in_claude"
+        phx-value-folder={@project.folder}
+        phx-value-path={@project.path}
+        phx-value-name={@project.name}
+        class="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm font-medium py-2 rounded-lg transition-colors cursor-pointer"
+      >
+        Open in Claude
+      </button>
+    </div>
+    """
+  end
+
+  # ---------------------------------------------------------------------------
+  # Mini card (intermediate levels) — click expands tree + scrolls to full card
+  # ---------------------------------------------------------------------------
+
+  attr :project, :map, required: true
+
+  def mini_project_card(assigns) do
+    ~H"""
+    <div class="bg-gray-900 border border-gray-800 rounded-lg p-3 flex flex-col gap-2 hover:border-indigo-500 transition-colors">
+      <%!-- Row 1: click = expand to full card --%>
+      <button
+        phx-click="expand_to_project"
+        phx-value-folder={@project.folder}
+        class="flex items-center justify-between gap-1 min-w-0 w-full text-left"
+      >
+        <span class="text-sm leading-none shrink-0">{status_emoji(@project.status_key)}</span>
+        <span class="text-xs font-semibold text-gray-100 truncate flex-1 mx-1.5">{@project.name}</span>
+        <span class="text-xs text-gray-500 whitespace-nowrap shrink-0">Day {@project.days_active}</span>
+      </button>
+
+      <%!-- Row 2: open button (separate) · progress bar also expands --%>
+      <div class="flex items-center gap-2">
+        <button
+          phx-click="open_in_claude"
+          phx-value-folder={@project.folder}
+          phx-value-path={@project.path}
+          phx-value-name={@project.name}
+          title="Open in Claude"
+          class="shrink-0 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-900 rounded px-1 py-0.5 text-xs leading-none transition-colors"
+        >▶</button>
+        <button
+          phx-click="expand_to_project"
+          phx-value-folder={@project.folder}
+          class="flex-1 flex items-center gap-2 min-w-0"
+        >
+          <div class="flex-1 bg-gray-800 rounded-full h-1.5">
+            <div
+              class={["h-1.5 rounded-full", progress_color(@project.progress)]}
+              style={"width: #{@project.progress}%"}
+            />
+          </div>
+          <span class="text-xs text-gray-500 font-mono w-8 text-right shrink-0">{@project.progress}%</span>
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  # ---------------------------------------------------------------------------
+  # Shared helpers
+  # ---------------------------------------------------------------------------
+
+  def status_emoji(:active),   do: "🟢"
+  def status_emoji(:planning), do: "🟡"
+  def status_emoji(:paused),   do: "🔴"
+  def status_emoji(:live),     do: "✅"
+  def status_emoji(_),         do: "⚪"
+
+  defp status_color(:active),   do: "bg-green-900 text-green-300"
+  defp status_color(:planning), do: "bg-yellow-900 text-yellow-300"
+  defp status_color(:paused),   do: "bg-red-900 text-red-300"
+  defp status_color(:live),     do: "bg-blue-900 text-blue-300"
+  defp status_color(_),         do: "bg-gray-800 text-gray-300"
+
+  defp status_label(status) do
+    case String.split(status, " ", parts: 2) do
+      [_emoji, rest] -> rest
+      [only]         -> only
+    end
+  end
+
+  def progress_color(p) when p >= 75, do: "bg-green-500"
+  def progress_color(p) when p >= 40, do: "bg-yellow-500"
+  def progress_color(_),               do: "bg-gray-600"
+
+  defp indent(0), do: ""
+  defp indent(1), do: "  · "
+  defp indent(2), do: "    · "
+  defp indent(n), do: String.duplicate("  ", n) <> "· "
+
+  defp format_date(nil),  do: "unknown"
+  defp format_date(date), do: Calendar.strftime(date, "%b %d")
+end
