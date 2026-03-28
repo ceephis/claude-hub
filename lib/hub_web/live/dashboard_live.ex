@@ -2,10 +2,13 @@ defmodule HubWeb.DashboardLive do
   use HubWeb, :live_view
   import HubWeb.GroupAccordion
 
+  @five_minutes 5 * 60 * 1000
+
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Hub.PubSub, Hub.ProjectWatcher.topic())
+      Process.send_after(self(), :auto_fix_timesheet, @five_minutes)
     end
 
     {:ok,
@@ -20,6 +23,19 @@ defmodule HubWeb.DashboardLive do
 
   @impl true
   def handle_info(:projects_updated, socket) do
+    {:noreply, assign(socket, load_data())}
+  end
+
+  @impl true
+  def handle_info(:auto_fix_timesheet, socket) do
+    Hub.TimesheetFixer.fix()
+    Process.send_after(self(), :auto_fix_timesheet, @five_minutes)
+    {:noreply, assign(socket, load_data())}
+  end
+
+  @impl true
+  def handle_event("fix_timesheet", _, socket) do
+    Hub.TimesheetFixer.fix()
     {:noreply, assign(socket, load_data())}
   end
 
@@ -199,7 +215,7 @@ defmodule HubWeb.DashboardLive do
         create tab with default profile
         tell current session
           set name to "#{safe_name}"
-          write text "printf '\\\\033]1337;SetBadgeFormat=#{badge_b64}\\\\007' && cd #{path} && claude --continue"
+          write text "printf '\\\\033]1337;SetBadgeFormat=#{badge_b64}\\\\007' && cd #{path} && claude"
         end tell
       end tell
     end tell
@@ -255,6 +271,7 @@ defmodule HubWeb.DashboardLive do
       uncategorized:  uncategorized,
       total_projects: length(projects),
       group_options:  Hub.Groups.flat_list(groups),
+      today_hours:    format_hours(timesheet.today_hours),
       week_hours:     format_hours(timesheet.week_hours),
       total_hours:    format_hours(timesheet.total_hours)
     }

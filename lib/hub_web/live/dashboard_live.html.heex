@@ -4,11 +4,30 @@
   <header class="sticky top-0 z-50 bg-gray-900 border-b border-gray-800 px-8 py-4">
     <div class="grid grid-cols-3 items-center max-w-screen-2xl mx-auto">
 
-      <%!-- Left: title --%>
-      <h1 class="text-2xl font-bold tracking-tight">🧠 CLAUDE HQ</h1>
+      <%!-- Left: title — click to open ~/Desktop/Claude in iTerm --%>
+      <h1 class="text-2xl font-bold tracking-tight">
+        <button
+          phx-click="open_in_claude"
+          phx-value-folder="Claude"
+          phx-value-path={Path.expand("~/Desktop/Claude")}
+          phx-value-name="Claude HQ"
+          class="hover:text-indigo-400 transition-colors cursor-pointer"
+          title="Open ~/Desktop/Claude in Claude"
+        >🧠 CLAUDE HQ</button>
+      </h1>
 
       <%!-- Center: hours --%>
       <div class="flex items-center justify-center gap-5">
+        <button
+          phx-click="fix_timesheet"
+          title="Recalculate timesheet totals from raw rows"
+          class="text-gray-600 hover:text-indigo-400 transition-colors text-lg leading-none"
+        >⟳</button>
+        <div class="flex flex-col items-center leading-tight">
+          <span class="text-lg font-bold text-indigo-400 font-mono">{@today_hours}</span>
+          <span class="text-xs text-gray-500 uppercase tracking-wide">today</span>
+        </div>
+        <div class="w-px h-8 bg-gray-700"></div>
         <div class="flex flex-col items-center leading-tight">
           <span class="text-lg font-bold text-white font-mono">{@week_hours}</span>
           <span class="text-xs text-gray-500 uppercase tracking-wide">this week</span>
