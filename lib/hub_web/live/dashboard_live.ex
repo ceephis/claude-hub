@@ -18,7 +18,8 @@ defmodule HubWeb.DashboardLive do
      |> assign(:search, "")
      |> assign(:expanded, MapSet.new())
      |> assign(:editing_group, nil)
-     |> assign(:adding_to, nil)}
+     |> assign(:adding_to, nil)
+     |> assign(:committing, nil)}
   end
 
   @impl true
@@ -235,6 +236,79 @@ defmodule HubWeb.DashboardLive do
     end)
 
     {:noreply, socket}
+  end
+
+  # ---------------------------------------------------------------------------
+  # Commit & Push
+  # ---------------------------------------------------------------------------
+
+  @impl true
+  def handle_event("start_commit", %{"folder" => folder}, socket) do
+    {:noreply, assign(socket, :committing, folder)}
+  end
+
+  @impl true
+  def handle_event("cancel_commit", _params, socket) do
+    {:noreply, assign(socket, :committing, nil)}
+  end
+
+  @impl true
+  def handle_event("commit_and_push", %{"folder" => folder, "path" => path, "name" => name, "message" => msg}, socket) do
+    msg = String.trim(msg)
+    if msg != "" do
+      msg_file = "/tmp/hub_commit_#{folder}.txt"
+      File.write!(msg_file, msg)
+      run_in_iterm(path, "git add -A && git commit -F #{msg_file} && git push", folder, name)
+    end
+    {:noreply, assign(socket, :committing, nil)}
+  end
+
+  # ---------------------------------------------------------------------------
+  # Deploy button — custom deploy cmd
+  # ---------------------------------------------------------------------------
+
+  @impl true
+  def handle_event("run_deploy", %{"folder" => folder, "path" => path, "name" => name, "cmd" => cmd}, socket) do
+    run_in_iterm(path, cmd, folder, name)
+    {:noreply, socket}
+  end
+
+  defp run_in_iterm(path, cmd, folder, name) do
+    safe_name = name
+      |> String.replace("—", "-")
+      |> String.replace("–", "-")
+      |> String.replace(~r/[^\x00-\x7F]/, "")
+      |> String.replace(~r/"/, "'")
+
+    badge_b64 = Base.encode64(name)
+
+    script = """
+    tell application "iTerm"
+      activate
+      if (count of windows) = 0 then
+        create window with default profile
+      end if
+      tell current window
+        create tab with default profile
+        tell current session
+          set name to "#{safe_name}"
+          write text "printf '\\\\033]1337;SetBadgeFormat=#{badge_b64}\\\\007' && cd #{path} && #{cmd}"
+        end tell
+      end tell
+    end tell
+    """
+
+    script_path = "/tmp/hub_deploy_#{folder}.applescript"
+    File.write!(script_path, script)
+
+    Task.start(fn ->
+      case System.cmd("osascript", [script_path], stderr_to_stdout: true) do
+        {_output, 0} -> :ok
+        {error, code} ->
+          require Logger
+          Logger.error("run_in_iterm: osascript failed (#{code}): #{error}")
+      end
+    end)
   end
 
   # ---------------------------------------------------------------------------

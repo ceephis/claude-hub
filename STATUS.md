@@ -44,3 +44,8 @@ Running live at localhost:9000 — auto-starts on login via launchd.
 - [x] Expand mini card → scroll to full card
 - [x] Live reload on STATUS.md changes
 - [x] launchd plist — auto-starts on login
+
+### Deploy Buttons
+- [x] ↑ Push button on every card (opens iTerm tab, runs git push)
+- [x] ⚡ Deploy button — shown when STATUS.md has **Deploy:** field
+- [x] Deploy field parsed from STATUS.md (e.g. `**Deploy:** fly deploy`)

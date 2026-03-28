@@ -36,6 +36,7 @@ defmodule Hub.StatusParser do
       stack:       parse_field(lines, "Stack"),
       next_action: parse_next_action(lines),
       live_url:    parse_field(lines, "Domain"),
+      deploy_cmd:  parse_field(lines, "Deploy"),
       tasks_done:  count_tasks(lines, :done),
       tasks_total: count_tasks(lines, :total),
       progress:    calc_progress(lines)

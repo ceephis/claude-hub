@@ -14,6 +14,7 @@ defmodule HubWeb.GroupAccordion do
   attr :editing_group, :string,  default: nil
   attr :adding_to,     :string,  default: nil
   attr :group_options, :list,    default: []
+  attr :committing,    :string,  default: nil
 
   def group_list(assigns) do
     ~H"""
@@ -27,6 +28,7 @@ defmodule HubWeb.GroupAccordion do
           editing_group={@editing_group}
           adding_to={@adding_to}
           group_options={@group_options}
+          committing={@committing}
           depth={0}
         />
       <% end %>
@@ -37,7 +39,7 @@ defmodule HubWeb.GroupAccordion do
       <% end %>
 
       <%= if length(@uncategorized) > 0 do %>
-        <.uncategorized_section cards={@uncategorized} filters={@filters} search={@search} group_options={@group_options} />
+        <.uncategorized_section cards={@uncategorized} filters={@filters} search={@search} group_options={@group_options} committing={@committing} />
       <% end %>
     </div>
     """
@@ -54,6 +56,7 @@ defmodule HubWeb.GroupAccordion do
   attr :editing_group, :string,  default: nil
   attr :adding_to,     :string,  default: nil
   attr :group_options, :list,    default: []
+  attr :committing,    :string,  default: nil
   attr :depth,         :integer, default: 0
 
   def group_node(assigns) do
@@ -163,6 +166,7 @@ defmodule HubWeb.GroupAccordion do
                 editing_group={@editing_group}
                 adding_to={@adding_to}
                 group_options={@group_options}
+                committing={@committing}
                 depth={@depth + 1}
               />
             <% end %>
@@ -177,7 +181,7 @@ defmodule HubWeb.GroupAccordion do
             <%= if length(@visible_cards) > 0 do %>
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 py-3">
                 <%= for project <- @visible_cards do %>
-                  <.project_card project={project} group_options={@group_options} />
+                  <.project_card project={project} group_options={@group_options} committing={@committing} />
                 <% end %>
               </div>
             <% end %>
@@ -234,6 +238,7 @@ defmodule HubWeb.GroupAccordion do
   attr :filters,       :list,   required: true
   attr :search,        :string, default: ""
   attr :group_options, :list,   default: []
+  attr :committing,    :string, default: nil
 
   def uncategorized_section(assigns) do
     assigns = assign(assigns, :visible, visible_cards(assigns.cards, assigns.filters, assigns.search))
@@ -247,7 +252,7 @@ defmodule HubWeb.GroupAccordion do
         </div>
         <div class="ml-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 py-3">
           <%= for project <- @visible do %>
-            <.project_card project={project} group_options={@group_options} />
+            <.project_card project={project} group_options={@group_options} committing={@committing} />
           <% end %>
         </div>
       </div>
