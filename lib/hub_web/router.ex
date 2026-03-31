@@ -18,6 +18,8 @@ defmodule HubWeb.Router do
     pipe_through :browser
 
     live "/", DashboardLive
+    get  "/status-pdf/:folder", StatusExportController, :download
+    get  "/weekly-report", WeeklyReportController, :show
   end
 
   # Other scopes may use custom stacks.

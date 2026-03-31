@@ -4,7 +4,7 @@
 **Stack:** Elixir/Phoenix · LiveView · Tailwind · file_system watcher · AppleScript · launchd
 
 ## Next Action
-Running live at localhost:9000 — auto-starts on login via launchd.
+Running live at localhost:9000 — fly.io unsynced indicator planned as follow-up.
 
 ## Checklist
 ### Foundation
@@ -46,6 +46,20 @@ Running live at localhost:9000 — auto-starts on login via launchd.
 - [x] launchd plist — auto-starts on login
 
 ### Deploy Buttons
-- [x] ↑ Push button on every card (opens iTerm tab, runs git push)
-- [x] ⚡ Deploy button — shown when STATUS.md has **Deploy:** field
-- [x] Deploy field parsed from STATUS.md (e.g. `**Deploy:** fly deploy`)
+- [x] ↑ Commit & Push button — inline commit message input on card, runs git add -A && git commit && git push
+- [x] 🚀 fly.io button — auto-detected from fly.toml (searches 2 levels deep), shows app name on hover
+- [x] ⚡ Deploy button — shown when STATUS.md has **Deploy:** field (custom deploy cmd)
+- [x] Commit message written to temp file to handle spaces + special characters
+- [x] Auto-detect git root in subdirectories (fixes projects where .git lives one level deep)
+- [x] Auto git init + gh repo create --private on first commit if no repo exists
+
+### Sync & Filters
+- [x] ↑ Sync Today button — commits & pushes all projects with uncommitted changes (git dirty), async with results panel
+- [x] 📅 Today filter pill — shows projects with STATUS.md modified today
+- [x] ⬆ Needs Git filter pill — shows projects with uncommitted git changes
+- [x] Weekly report changed_projects — uses git log to find STATUS.md commits in date range
+
+### Card UI
+- [x] ⇄ move icon in header row (replaces full-width dropdown, transparent select overlay)
+- [x] Open in Claude + 📄 PDF side-by-side half-buttons
+- [x] PDF download — GET /status-pdf/:folder → pandoc generates PDF (falls back to HTML → .md), browser downloads natively, cross-platform

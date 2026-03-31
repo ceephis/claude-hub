@@ -19,12 +19,18 @@ defmodule HubWeb.DashboardLive do
      |> assign(:expanded, MapSet.new())
      |> assign(:editing_group, nil)
      |> assign(:adding_to, nil)
-     |> assign(:committing, nil)}
+     |> assign(:committing, nil)
+     |> assign(:sync_status, nil)}
   end
 
   @impl true
   def handle_info(:projects_updated, socket) do
     {:noreply, assign(socket, load_data())}
+  end
+
+  @impl true
+  def handle_info({:sync_done, results}, socket) do
+    {:noreply, assign(socket, :sync_status, {:done, results})}
   end
 
   @impl true
@@ -238,6 +244,27 @@ defmodule HubWeb.DashboardLive do
     {:noreply, socket}
   end
 
+# ---------------------------------------------------------------------------
+  # Daily sync
+  # ---------------------------------------------------------------------------
+
+  @impl true
+  def handle_event("sync_today", _params, socket) do
+    pid = self()
+
+    Task.start(fn ->
+      results = Hub.DailySync.sync_today()
+      send(pid, {:sync_done, results})
+    end)
+
+    {:noreply, assign(socket, :sync_status, :running)}
+  end
+
+  @impl true
+  def handle_event("dismiss_sync", _params, socket) do
+    {:noreply, assign(socket, :sync_status, nil)}
+  end
+
   # ---------------------------------------------------------------------------
   # Commit & Push
   # ---------------------------------------------------------------------------
@@ -258,9 +285,24 @@ defmodule HubWeb.DashboardLive do
     if msg != "" do
       msg_file = "/tmp/hub_commit_#{folder}.txt"
       File.write!(msg_file, msg)
-      run_in_iterm(path, "git add -A && git commit -F #{msg_file} && git push", folder, name)
+      cmd = """
+      (git rev-parse --git-dir > /dev/null 2>&1 || (git init && git branch -M main)) && \
+      (git remote get-url origin > /dev/null 2>&1 || gh repo create #{folder} --private --source=. --remote=origin) && \
+      git add -A && git commit -F #{msg_file} && git push -u origin HEAD\
+      """
+      run_in_iterm(path, cmd, folder, name)
     end
     {:noreply, assign(socket, :committing, nil)}
+  end
+
+  # ---------------------------------------------------------------------------
+  # fly.io deploy
+  # ---------------------------------------------------------------------------
+
+  @impl true
+  def handle_event("fly_deploy", %{"folder" => folder, "path" => path, "name" => name}, socket) do
+    run_in_iterm(path, "fly deploy", folder, name)
+    {:noreply, socket}
   end
 
   # ---------------------------------------------------------------------------
@@ -315,11 +357,13 @@ defmodule HubWeb.DashboardLive do
   # Helpers
   # ---------------------------------------------------------------------------
 
-  def filter_active_class(:active),   do: "bg-green-700 text-white"
-  def filter_active_class(:planning), do: "bg-yellow-700 text-white"
-  def filter_active_class(:paused),   do: "bg-red-700 text-white"
-  def filter_active_class(:live),     do: "bg-blue-700 text-white"
-  def filter_active_class(_),         do: "bg-indigo-600 text-white"
+  def filter_active_class(:active),    do: "bg-green-700 text-white"
+  def filter_active_class(:planning),  do: "bg-yellow-700 text-white"
+  def filter_active_class(:paused),    do: "bg-red-700 text-white"
+  def filter_active_class(:live),      do: "bg-blue-700 text-white"
+  def filter_active_class(:today),     do: "bg-purple-700 text-white"
+  def filter_active_class(:needs_git), do: "bg-orange-700 text-white"
+  def filter_active_class(_),          do: "bg-indigo-600 text-white"
 
   defp ensure_expanded(socket, "root"), do: socket
   defp ensure_expanded(socket, id) do

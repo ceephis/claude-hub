@@ -266,8 +266,16 @@ defmodule HubWeb.GroupAccordion do
 
   defp visible_cards(cards, filters, search) do
     cards
-    |> then(fn c -> if filters == [], do: c, else: Enum.filter(c, &(&1.status_key in filters)) end)
+    |> then(fn c -> if filters == [], do: c, else: Enum.filter(c, &card_matches_filters?(&1, filters)) end)
     |> then(fn c -> if search == "", do: c, else: Enum.filter(c, &matches_search?(&1, search)) end)
+  end
+
+  defp card_matches_filters?(card, filters) do
+    Enum.any?(filters, fn
+      :today     -> card.modified_today
+      :needs_git -> card.git_dirty
+      status_key -> card.status_key == status_key
+    end)
   end
 
   defp matches_search?(project, search) do

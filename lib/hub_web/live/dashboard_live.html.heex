@@ -16,33 +16,53 @@
         >🧠 CLAUDE HQ</button>
       </h1>
 
-      <%!-- Center: hours --%>
-      <div class="flex items-center justify-center gap-5">
-        <button
-          phx-click="fix_timesheet"
-          title="Recalculate timesheet totals from raw rows"
-          class="text-gray-600 hover:text-indigo-400 transition-colors text-lg leading-none"
-        >⟳</button>
-        <div class="flex flex-col items-center leading-tight">
-          <span class="text-lg font-bold text-indigo-400 font-mono">{@today_hours}</span>
-          <span class="text-xs text-gray-500 uppercase tracking-wide">today</span>
+      <%!-- Center: hours + weekly report button --%>
+      <div class="flex flex-col items-center gap-2">
+        <div class="flex items-center gap-5">
+          <button
+            phx-click="fix_timesheet"
+            title="Recalculate timesheet totals from raw rows"
+            class="text-gray-600 hover:text-indigo-400 transition-colors text-lg leading-none"
+          >⟳</button>
+          <div class="flex flex-col items-center leading-tight">
+            <span class="text-lg font-bold text-indigo-400 font-mono">{@today_hours}</span>
+            <span class="text-xs text-gray-500 uppercase tracking-wide">today</span>
+          </div>
+          <div class="w-px h-8 bg-gray-700"></div>
+          <div class="flex flex-col items-center leading-tight">
+            <span class="text-lg font-bold text-white font-mono">{@week_hours}</span>
+            <span class="text-xs text-gray-500 uppercase tracking-wide">this week</span>
+          </div>
+          <div class="w-px h-8 bg-gray-700"></div>
+          <div class="flex flex-col items-center leading-tight">
+            <span class="text-lg font-bold text-gray-400 font-mono">{@total_hours}</span>
+            <span class="text-xs text-gray-500 uppercase tracking-wide">all time</span>
+          </div>
         </div>
-        <div class="w-px h-8 bg-gray-700"></div>
-        <div class="flex flex-col items-center leading-tight">
-          <span class="text-lg font-bold text-white font-mono">{@week_hours}</span>
-          <span class="text-xs text-gray-500 uppercase tracking-wide">this week</span>
-        </div>
-        <div class="w-px h-8 bg-gray-700"></div>
-        <div class="flex flex-col items-center leading-tight">
-          <span class="text-lg font-bold text-gray-400 font-mono">{@total_hours}</span>
-          <span class="text-xs text-gray-500 uppercase tracking-wide">all time</span>
-        </div>
+        <a
+          href={~p"/weekly-report"}
+          class="text-xs text-gray-500 hover:text-indigo-400 hover:bg-gray-800 border border-gray-800 hover:border-gray-700 px-6 py-0.5 rounded-full transition-colors tracking-wide"
+        >weekly report</a>
       </div>
 
       <%!-- Right: count · date · new group --%>
       <div class="flex items-center justify-end gap-4">
         <span class="text-sm text-gray-500 font-mono">{@total_projects} projects</span>
         <span class="text-sm text-gray-600">{Calendar.strftime(Date.utc_today(), "%b %d, %Y")}</span>
+        <button
+          phx-click="sync_today"
+          disabled={@sync_status == :running}
+          class={[
+            "text-sm border px-3 py-1.5 rounded-lg transition-colors",
+            if(@sync_status == :running,
+              do: "bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed",
+              else: "bg-indigo-900 hover:bg-indigo-800 border-indigo-700 text-indigo-300 hover:text-white"
+            )
+          ]}
+          title="Commit & push all projects modified today"
+        >
+          <%= if @sync_status == :running, do: "↑ Syncing…", else: "↑ Sync Today" %>
+        </button>
         <button
           phx-click="start_add_group"
           phx-value-parent_id="root"
@@ -70,7 +90,7 @@
         All
       </button>
 
-      <%= for {key, label} <- [active: "🟢 Active", planning: "🟡 Planning", paused: "🔴 Paused", live: "✅ Live"] do %>
+      <%= for {key, label} <- [active: "🟢 Active", planning: "🟡 Planning", paused: "🔴 Paused", live: "✅ Live", today: "📅 Today", needs_git: "⬆ Needs Git"] do %>
         <button
           phx-click="toggle_filter"
           phx-value-status={key}
@@ -95,6 +115,53 @@
       </form>
     </div>
   </div>
+
+  <%!-- Sync results --%>
+  <%= if match?({:done, _}, @sync_status) do %>
+    <% {:done, results} = @sync_status %>
+    <div class="bg-gray-900 border-b border-gray-800 px-8 py-3">
+      <div class="max-w-screen-2xl mx-auto">
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex flex-wrap gap-3">
+            <%= for r <- results do %>
+              <div class={[
+                "flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-mono",
+                case r.status do
+                  :committed -> "bg-green-950 border-green-800 text-green-400"
+                  :clean     -> "bg-gray-800 border-gray-700 text-gray-500"
+                  :no_git    -> "bg-yellow-950 border-yellow-800 text-yellow-500"
+                  _          -> "bg-red-950 border-red-800 text-red-400"
+                end
+              ]}>
+                <span>
+                  <%= case r.status do
+                    :committed -> "✓"
+                    :clean     -> "–"
+                    :no_git    -> "⚠"
+                    _          -> "✗"
+                  end %>
+                </span>
+                <span>{r.name}</span>
+                <%= if r.pushed == :ok do %>
+                  <span class="text-green-600">↑</span>
+                <% end %>
+                <%= if r.pushed == :no_remote do %>
+                  <span class="text-gray-600" title="No remote">local</span>
+                <% end %>
+                <%= if match?({:error, _}, r.pushed) do %>
+                  <span class="text-red-500" title={elem(r.pushed, 1)}>push failed</span>
+                <% end %>
+              </div>
+            <% end %>
+            <%= if results == [] do %>
+              <span class="text-xs text-gray-500">No projects with STATUS.md modified today.</span>
+            <% end %>
+          </div>
+          <button phx-click="dismiss_sync" class="text-gray-600 hover:text-gray-400 text-sm leading-none flex-shrink-0 mt-0.5">✕</button>
+        </div>
+      </div>
+    </div>
+  <% end %>
 
   <%!-- Main content --%>
   <main class="max-w-screen-2xl mx-auto px-8 py-6">

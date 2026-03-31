@@ -17,9 +17,26 @@ defmodule HubWeb.ProjectCard do
     >
       <div class="flex items-start justify-between gap-2">
         <h3 class="text-base font-semibold leading-tight">{@project.name}</h3>
-        <span class={["text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap", status_color(@project.status_key)]}>
-          {status_emoji(@project.status_key)} {status_label(@project.status)}
-        </span>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class={["text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap", status_color(@project.status_key)]}>
+            {status_emoji(@project.status_key)} {status_label(@project.status)}
+          </span>
+          <%= if length(@group_options) > 0 do %>
+            <div class="relative w-6 h-5" title="Move to group">
+              <span class="absolute inset-0 flex items-center justify-center text-gray-500 hover:text-gray-300 text-sm pointer-events-none">⇄</span>
+              <form phx-change="move_card" class="absolute inset-0">
+                <input type="hidden" name="folder" value={@project.folder} />
+                <select name="to_group_id" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full text-xs">
+                  <option value="">Move to...</option>
+                  <option value="uncategorized">— Uncategorized —</option>
+                  <%= for {id, name, depth} <- @group_options do %>
+                    <option value={id}>{indent(depth)}{name}</option>
+                  <% end %>
+                </select>
+              </form>
+            </div>
+          <% end %>
+        </div>
       </div>
 
       <%= if @project.live_url do %>
@@ -52,31 +69,24 @@ defmodule HubWeb.ProjectCard do
         <p class="truncate">{@project.stack}</p>
       </div>
 
-      <%= if length(@group_options) > 0 do %>
-        <form phx-change="move_card">
-          <input type="hidden" name="folder" value={@project.folder} />
-          <select
-            name="to_group_id"
-            class="w-full bg-gray-800 border border-gray-700 text-gray-300 text-xs rounded-lg px-2 py-1.5 cursor-pointer hover:border-gray-500 transition-colors"
-          >
-            <option value="">Move to...</option>
-            <option value="uncategorized">— Uncategorized —</option>
-            <%= for {id, name, depth} <- @group_options do %>
-              <option value={id}>{indent(depth)}{name}</option>
-            <% end %>
-          </select>
-        </form>
-      <% end %>
-
-      <button
-        phx-click="open_in_claude"
-        phx-value-folder={@project.folder}
-        phx-value-path={@project.path}
-        phx-value-name={@project.name}
-        class="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm font-medium py-2 rounded-lg transition-colors cursor-pointer"
-      >
-        Open in Claude
-      </button>
+      <div class="flex gap-2">
+        <button
+          phx-click="open_in_claude"
+          phx-value-folder={@project.folder}
+          phx-value-path={@project.path}
+          phx-value-name={@project.name}
+          class="flex-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm font-medium py-2 rounded-lg transition-colors cursor-pointer"
+        >
+          Open in Claude
+        </button>
+        <a
+          href={"/status-pdf/#{@project.folder}"}
+          title="Download STATUS.md as PDF"
+          class="flex-1 bg-gray-800 hover:bg-blue-900 active:bg-blue-800 text-blue-400 text-sm font-medium py-2 rounded-lg transition-colors border border-gray-700 text-center"
+        >
+          📄 PDF
+        </a>
+      </div>
 
       <div class="flex gap-2">
         <%= if @committing == @project.folder do %>
@@ -87,7 +97,7 @@ defmodule HubWeb.ProjectCard do
             class="flex flex-1 gap-1"
           >
             <input type="hidden" name="folder" value={@project.folder} />
-            <input type="hidden" name="path" value={@project.path} />
+            <input type="hidden" name="path" value={@project.git_path} />
             <input type="hidden" name="name" value={@project.name} />
             <input
               type="text"
@@ -108,6 +118,18 @@ defmodule HubWeb.ProjectCard do
           >
             ↑ Commit & Push
           </button>
+          <%= if @project.fly_app do %>
+            <button
+              phx-click="fly_deploy"
+              phx-value-folder={@project.folder}
+              phx-value-path={@project.fly_deploy_path}
+              phx-value-name={@project.name}
+              title={"fly deploy — #{@project.fly_app}"}
+              class="flex-1 bg-gray-800 hover:bg-violet-900 active:bg-violet-800 text-violet-400 text-xs font-medium py-1.5 rounded-lg transition-colors cursor-pointer border border-gray-700"
+            >
+              🚀 fly.io
+            </button>
+          <% end %>
           <%= if @project.deploy_cmd do %>
             <button
               phx-click="run_deploy"
