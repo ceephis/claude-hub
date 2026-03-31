@@ -4,7 +4,7 @@
 **Stack:** Elixir/Phoenix · LiveView · Tailwind · file_system watcher · AppleScript · launchd
 
 ## Next Action
-Running live at localhost:9000 — fly.io unsynced indicator planned as follow-up.
+Fix daily_sync.ex to pull-before-push and improve error reporting (repo name + reason) — two push failures on 2026-03-31 (teagles: remote ahead, palani: missing workflow token scope).
 
 ## Checklist
 ### Foundation
