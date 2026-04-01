@@ -53,10 +53,19 @@ defmodule Hub.ProjectScanner do
   end
 
   defp git_dirty?(git_path) do
-    case System.cmd("git", ["status", "--porcelain"], cd: git_path, stderr_to_stdout: true) do
-      {output, 0} -> String.trim(output) != ""
-      _ -> false
-    end
+    has_uncommitted =
+      case System.cmd("git", ["status", "--porcelain"], cd: git_path, stderr_to_stdout: true) do
+        {output, 0} -> String.trim(output) != ""
+        _ -> false
+      end
+
+    has_unpushed =
+      case System.cmd("git", ["log", "@{u}..HEAD", "--oneline"], cd: git_path, stderr_to_stdout: true) do
+        {output, 0} -> String.trim(output) != ""
+        _ -> false
+      end
+
+    has_uncommitted || has_unpushed
   end
 
   defp find_git_path(project_path) do
