@@ -4,7 +4,7 @@
 **Stack:** Elixir/Phoenix · LiveView · Tailwind · file_system watcher · AppleScript · launchd
 
 ## Next Action
-Fix daily_sync.ex to pull-before-push and improve error reporting (repo name + reason) — two push failures on 2026-03-31 (teagles: remote ahead, palani: missing workflow token scope).
+Fix daily_sync.ex pull-before-push to prevent push failures when remote has new commits.
 
 ## Checklist
 ### Foundation
@@ -63,3 +63,12 @@ Fix daily_sync.ex to pull-before-push and improve error reporting (repo name + r
 - [x] ⇄ move icon in header row (replaces full-width dropdown, transparent select overlay)
 - [x] Open in Claude + 📄 PDF side-by-side half-buttons
 - [x] PDF download — GET /status-pdf/:folder → pandoc generates PDF (falls back to HTML → .md), browser downloads natively, cross-platform
+
+### Weekly Report & Portfolio
+- [x] Weekly report: timesheet simplified (Date · Project · Hours, no Description)
+- [x] Weekly report: progress bars filtered to this-week-only projects (git-based)
+- [x] Portfolio briefing route: GET /portfolio-briefing serves ~/Desktop/Claude/portfolio/project-briefing.html
+- [x] Portfolio Briefing button in weekly report nav (opens new tab)
+- [x] Portfolio briefing — dynamic est_block per project (hours from timesheet, rate, remaining items, next steps)
+- [x] Portfolio briefing — all 15 project pages editorially rewritten + products renamed
+- [x] Portfolio briefing — week filter dropdown: client-side JS, week→token map injected as JSON from timesheet, filters pages + cover table rows instantly with no page reload

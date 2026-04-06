@@ -20,6 +20,7 @@ defmodule HubWeb.Router do
     live "/", DashboardLive
     get  "/status-pdf/:folder", StatusExportController, :download
     get  "/weekly-report", WeeklyReportController, :show
+    get  "/portfolio-briefing", PortfolioBriefingController, :show
   end
 
   # Other scopes may use custom stacks.

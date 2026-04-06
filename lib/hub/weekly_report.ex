@@ -11,7 +11,7 @@ defmodule Hub.WeeklyReport do
       week_start: week_start,
       week_end: week_end,
       timesheet: build_timesheet(week_start, week_end),
-      projects_progress: build_projects_progress(),
+      projects_progress: build_projects_progress(week_start, week_end),
       changed_projects: build_changed_projects(week_start, week_end)
     }
   end
@@ -106,9 +106,12 @@ defmodule Hub.WeeklyReport do
   # Project progress (non-live)
   # ---------------------------------------------------------------------------
 
-  defp build_projects_progress do
+  defp build_projects_progress(week_start, week_end) do
+    since = Date.to_iso8601(week_start)
+    until = Date.to_iso8601(Date.add(week_end, 1))
+
     Hub.ProjectScanner.scan()
-    |> Enum.reject(&(&1.status_key == :live))
+    |> Enum.filter(&status_changed_in_git?(&1, since, until))
     |> Enum.sort_by(&(-&1.progress))
   end
 
