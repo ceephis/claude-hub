@@ -222,7 +222,7 @@ defmodule HubWeb.DashboardLive do
         create tab with default profile
         tell current session
           set name to "#{safe_name}"
-          write text "printf '\\\\033]1337;SetBadgeFormat=#{badge_b64}\\\\007' && cd #{path} && claude"
+          write text "printf '\\\\033]1337;SetBadgeFormat=#{badge_b64}\\\\007' && cd #{path} && claude --continue"
         end tell
       end tell
     end tell
