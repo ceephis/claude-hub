@@ -146,7 +146,17 @@ defmodule HubWeb.GroupAccordion do
         <div class="ml-5 border-l border-gray-800 pl-2 mt-0.5">
 
           <%= if length(@group.groups) > 0 do %>
-            <%!-- Intermediate level: mini overview cards for all deep projects --%>
+            <%!-- Direct full cards (if any) --%>
+            <%= if length(@visible_cards) > 0 do %>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 py-3">
+                <%= for project <- @visible_cards do %>
+                  <.project_card project={project} group_options={@group_options} committing={@committing} />
+                <% end %>
+              </div>
+              <div class="border-t border-gray-800 my-2"></div>
+            <% end %>
+
+            <%!-- Mini overview of deeply nested projects --%>
             <%= if length(@deep_cards) > 0 do %>
               <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 py-2">
                 <%= for project <- @deep_cards do %>
