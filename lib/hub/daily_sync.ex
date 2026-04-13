@@ -1,21 +1,49 @@
 defmodule Hub.DailySync do
   @doc """
-  Finds all projects with STATUS.md modified today, then git add -A / commit / push each.
+  Finds all projects with STATUS.md modified today (or in the pinned list), then
+  git add -A / commit / push each. Pinned projects that have no git repo will have
+  one initialized locally and on GitHub before committing.
   Returns a list of result maps.
   """
-  def sync_today do
-    Hub.ProjectScanner.scan()
-    |> Enum.filter(& &1.git_dirty)
-    |> Enum.map(&sync_project/1)
+  def sync_today(pinned_folders \\ []) do
+    all_projects = Hub.ProjectScanner.scan()
+
+    to_sync =
+      all_projects
+      |> Enum.filter(fn p -> p.git_dirty or p.folder in pinned_folders end)
+      |> Enum.uniq_by(& &1.folder)
+
+    Enum.map(to_sync, fn p ->
+      sync_project(p, p.folder in pinned_folders)
+    end)
   end
 
-  defp sync_project(project) do
+  defp sync_project(project, force_init) do
     git_path = project.git_path || project.path
 
     case System.cmd("git", ["rev-parse", "--git-dir"], cd: git_path, stderr_to_stdout: true) do
       {_, 0} -> do_commit_and_push(project, git_path)
-      _ -> %{name: project.name, status: :no_git, pushed: nil}
+      _ ->
+        if force_init do
+          do_init_and_push(project, git_path)
+        else
+          %{name: project.name, status: :no_git, pushed: nil}
+        end
     end
+  end
+
+  defp do_init_and_push(project, git_path) do
+    System.cmd("git", ["init"], cd: git_path, stderr_to_stdout: true)
+    System.cmd("git", ["branch", "-M", "main"], cd: git_path, stderr_to_stdout: true)
+
+    case System.cmd("git", ["remote", "get-url", "origin"], cd: git_path, stderr_to_stdout: true) do
+      {_, 0} -> :ok
+      _ ->
+        System.cmd("gh", ["repo", "create", project.folder, "--private", "--source=.", "--remote=origin"],
+          cd: git_path, stderr_to_stdout: true)
+    end
+
+    do_commit_and_push(project, git_path)
   end
 
   defp do_commit_and_push(project, git_path) do

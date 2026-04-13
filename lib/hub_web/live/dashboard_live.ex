@@ -19,8 +19,8 @@ defmodule HubWeb.DashboardLive do
      |> assign(:expanded, MapSet.new())
      |> assign(:editing_group, nil)
      |> assign(:adding_to, nil)
-     |> assign(:committing, nil)
-     |> assign(:sync_status, nil)}
+     |> assign(:sync_status, load_sync_status())
+     |> assign(:pinned_for_sync, Hub.SyncPins.load())}
   end
 
   @impl true
@@ -30,6 +30,7 @@ defmodule HubWeb.DashboardLive do
 
   @impl true
   def handle_info({:sync_done, results}, socket) do
+    Hub.SyncPins.save_report(results)
     {:noreply, assign(socket, :sync_status, {:done, results})}
   end
 
@@ -249,11 +250,17 @@ defmodule HubWeb.DashboardLive do
   # ---------------------------------------------------------------------------
 
   @impl true
+  def handle_event("toggle_sync_pin", %{"folder" => folder}, socket) do
+    updated = Hub.SyncPins.toggle(socket.assigns.pinned_for_sync, folder)
+    {:noreply, assign(socket, :pinned_for_sync, updated)}
+  end
+
   def handle_event("sync_today", _params, socket) do
     pid = self()
+    pinned = MapSet.to_list(socket.assigns.pinned_for_sync)
 
     Task.start(fn ->
-      results = Hub.DailySync.sync_today()
+      results = Hub.DailySync.sync_today(pinned)
       send(pid, {:sync_done, results})
     end)
 
@@ -262,37 +269,8 @@ defmodule HubWeb.DashboardLive do
 
   @impl true
   def handle_event("dismiss_sync", _params, socket) do
+    Hub.SyncPins.clear_report()
     {:noreply, assign(socket, :sync_status, nil)}
-  end
-
-  # ---------------------------------------------------------------------------
-  # Commit & Push
-  # ---------------------------------------------------------------------------
-
-  @impl true
-  def handle_event("start_commit", %{"folder" => folder}, socket) do
-    {:noreply, assign(socket, :committing, folder)}
-  end
-
-  @impl true
-  def handle_event("cancel_commit", _params, socket) do
-    {:noreply, assign(socket, :committing, nil)}
-  end
-
-  @impl true
-  def handle_event("commit_and_push", %{"folder" => folder, "path" => path, "name" => name, "message" => msg}, socket) do
-    msg = String.trim(msg)
-    if msg != "" do
-      msg_file = "/tmp/hub_commit_#{folder}.txt"
-      File.write!(msg_file, msg)
-      cmd = """
-      (git rev-parse --git-dir > /dev/null 2>&1 || (git init && git branch -M main)) && \
-      (git remote get-url origin > /dev/null 2>&1 || gh repo create #{folder} --private --source=. --remote=origin) && \
-      git add -A && git commit -F #{msg_file} && git push -u origin HEAD\
-      """
-      run_in_iterm(path, cmd, folder, name)
-    end
-    {:noreply, assign(socket, :committing, nil)}
   end
 
   # ---------------------------------------------------------------------------
@@ -393,5 +371,12 @@ defmodule HubWeb.DashboardLive do
       week_hours:     format_hours(timesheet.week_hours),
       total_hours:    format_hours(timesheet.total_hours)
     }
+  end
+
+  defp load_sync_status do
+    case Hub.SyncPins.load_report() do
+      nil     -> nil
+      results -> {:done, results}
+    end
   end
 end

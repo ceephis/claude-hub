@@ -5,9 +5,9 @@ defmodule HubWeb.ProjectCard do
   # Full card (leaf level)
   # ---------------------------------------------------------------------------
 
-  attr :project,       :map,    required: true
-  attr :group_options, :list,   default: []
-  attr :committing,    :string, default: nil
+  attr :project,         :map,    required: true
+  attr :group_options,   :list,   default: []
+  attr :pinned_for_sync, :any,    default: nil
 
   def project_card(assigns) do
     ~H"""
@@ -16,7 +16,19 @@ defmodule HubWeb.ProjectCard do
       class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col gap-3 hover:border-gray-600 transition-colors"
     >
       <div class="flex items-start justify-between gap-2">
-        <h3 class="text-base font-semibold leading-tight">{@project.name}</h3>
+        <div class="flex items-start gap-2">
+          <%= if @pinned_for_sync do %>
+            <input
+              type="checkbox"
+              phx-click="toggle_sync_pin"
+              phx-value-folder={@project.folder}
+              checked={MapSet.member?(@pinned_for_sync, @project.folder)}
+              title="Include in Sync Today"
+              class="mt-0.5 shrink-0 accent-orange-500 cursor-pointer"
+            />
+          <% end %>
+          <h3 class="text-base font-semibold leading-tight">{@project.name}</h3>
+        </div>
         <div class="flex items-center gap-1.5 shrink-0">
           <span class={["text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap", status_color(@project.status_key)]}>
             {status_emoji(@project.status_key)} {status_label(@project.status)}
@@ -88,36 +100,8 @@ defmodule HubWeb.ProjectCard do
         </a>
       </div>
 
-      <div class="flex gap-2">
-        <%= if @committing == @project.folder do %>
-          <form
-            phx-submit="commit_and_push"
-            phx-keydown="cancel_commit"
-            phx-key="Escape"
-            class="flex flex-1 gap-1"
-          >
-            <input type="hidden" name="folder" value={@project.folder} />
-            <input type="hidden" name="path" value={@project.git_path} />
-            <input type="hidden" name="name" value={@project.name} />
-            <input
-              type="text"
-              name="message"
-              placeholder="Commit message..."
-              autofocus
-              class="flex-1 bg-gray-700 border border-indigo-500 text-white text-xs rounded-lg px-2 py-1.5 outline-none min-w-0"
-            />
-            <button type="submit" class="text-green-400 hover:text-green-300 text-sm px-1.5">✓</button>
-            <button type="button" phx-click="cancel_commit" class="text-gray-500 hover:text-gray-300 text-sm px-1">✕</button>
-          </form>
-        <% else %>
-          <button
-            phx-click="start_commit"
-            phx-value-folder={@project.folder}
-            title="git add -A && git commit && git push"
-            class="flex-1 bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-300 text-xs font-medium py-1.5 rounded-lg transition-colors cursor-pointer border border-gray-700"
-          >
-            ↑ Commit & Push
-          </button>
+      <%= if @project.fly_app || @project.deploy_cmd do %>
+        <div class="flex gap-2">
           <%= if @project.fly_app do %>
             <button
               phx-click="fly_deploy"
@@ -143,8 +127,8 @@ defmodule HubWeb.ProjectCard do
               ⚡ Deploy
             </button>
           <% end %>
-        <% end %>
-      </div>
+        </div>
+      <% end %>
     </div>
     """
   end

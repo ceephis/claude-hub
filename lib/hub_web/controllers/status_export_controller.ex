@@ -17,6 +17,8 @@ defmodule HubWeb.StatusExportController do
     end
   end
 
+  @chromium "/Users/pv/Library/Caches/ms-playwright/chromium-1208/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+
   defp build_export(folder, status_path, name) do
     safe_name = String.replace(name, ~r/[^\w\s\-]/, "") |> String.trim()
     pdf_path  = "/tmp/hub_status_#{folder}.pdf"
@@ -28,11 +30,19 @@ defmodule HubWeb.StatusExportController do
         File.write!(txt, "No STATUS.md found.")
         {txt, "text/plain", "#{safe_name} - Status.md"}
 
-      match?({_, 0}, System.cmd("pandoc", [status_path, "-o", pdf_path], stderr_to_stdout: true)) ->
-        {pdf_path, "application/pdf", "#{safe_name} - Status.pdf"}
-
+      # markdown → HTML via pandoc, then HTML → PDF via Chrome headless
       match?({_, 0}, System.cmd("pandoc", [status_path, "--standalone", "-o", html_path], stderr_to_stdout: true)) ->
-        {html_path, "text/html", "#{safe_name} - Status.html"}
+        chrome_ok =
+          File.exists?(@chromium) &&
+          match?({_, 0}, System.cmd(@chromium,
+            ["--headless", "--disable-gpu", "--no-sandbox", "--print-to-pdf=#{pdf_path}", "file://#{html_path}"],
+            stderr_to_stdout: true))
+
+        if chrome_ok && File.exists?(pdf_path) do
+          {pdf_path, "application/pdf", "#{safe_name} - Status.pdf"}
+        else
+          {html_path, "text/html", "#{safe_name} - Status.html"}
+        end
 
       true ->
         {status_path, "text/plain", "#{safe_name} - Status.md"}
