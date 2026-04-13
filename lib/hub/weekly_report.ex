@@ -135,14 +135,31 @@ defmodule Hub.WeeklyReport do
   defp status_changed_in_git?(project, since, until) do
     git_path = project.git_path || project.path
 
-    case System.cmd(
-           "git",
-           ["log", "--since=#{since}", "--until=#{until}", "--", "STATUS.md"],
-           cd: git_path,
-           stderr_to_stdout: true
-         ) do
-      {output, 0} -> String.trim(output) != ""
-      _ -> false
+    git_changed =
+      case System.cmd(
+             "git",
+             ["log", "--since=#{since}", "--until=#{until}", "--", "STATUS.md"],
+             cd: git_path,
+             stderr_to_stdout: true
+           ) do
+        {output, 0} -> String.trim(output) != ""
+        _ -> false
+      end
+
+    git_changed || status_mtime_in_range?(project.path, since, until)
+  end
+
+  defp status_mtime_in_range?(project_path, since, until) do
+    status_path = Path.join(project_path, "STATUS.md")
+
+    case File.stat(status_path) do
+      {:ok, %{mtime: mtime}} ->
+        {local_date, _} = :calendar.universal_time_to_local_time(mtime)
+        date = Date.from_erl!(local_date) |> Date.to_iso8601()
+        date >= since && date < until
+
+      _ ->
+        false
     end
   end
 

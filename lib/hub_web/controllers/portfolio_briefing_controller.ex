@@ -22,7 +22,19 @@ defmodule HubWeb.PortfolioBriefingController do
     %{token: "lemonaid",  folder: "lemonade",   ts: ["Lemonade", "lemonade"],               blocked: ["client content"]},
     %{token: "palani",    folder: "palani",     ts: ["Palani", "palani"],                   blocked: []},
     %{token: "spotlight", folder: "spotlight",  ts: ["Spotlight"],                          blocked: []},
-    %{token: "hub",       folder: "hub",        ts: ["Hub"],                                blocked: []}
+    %{token: "hub",        folder: "hub",        ts: ["Hub"],                                blocked: []},
+    %{token: "golden",     folder: "Golden",     ts: ["Golden", "Golden Hour"],              blocked: []},
+    %{token: "dying",      folder: "Dying",      ts: ["Dying"],                              blocked: []},
+    %{token: "negligible9",folder: "Negligible9",ts: ["Negligible9"],                        blocked: []},
+    %{token: "wet",        folder: "Wet",        ts: ["Wet"],                                blocked: []},
+    %{token: "short",      folder: "Short",      ts: ["Short"],                              blocked: []},
+    %{token: "dream",      folder: "Dream",      ts: ["Dream", "Dream Weaver"],              blocked: []},
+    %{token: "atomnus",    folder: "Atomnus",    ts: ["Atomnus"],                            blocked: []},
+    %{token: "reflectare", folder: "Reflectare", ts: ["Reflectare"],                         blocked: []},
+    %{token: "invasion5",  folder: "Invasion5",  ts: ["Invasion5"],                          blocked: []},
+    %{token: "bermuda",    folder: "Bermuda",     ts: ["Bermuda"],                            blocked: []},
+    %{token: "qlink",      folder: "Qlink",       ts: ["Qlink"],                              blocked: []},
+    %{token: "relative",   folder: "Relative",    ts: ["Relative"],                           blocked: []}
   ]
 
   def show(conn, _params) do
