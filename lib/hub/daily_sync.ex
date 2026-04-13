@@ -75,7 +75,18 @@ defmodule Hub.DailySync do
       {_, 0} ->
         case System.cmd("git", ["push", "-u", "origin", "HEAD"], cd: git_path, stderr_to_stdout: true) do
           {_, 0} -> :ok
-          {error, _} -> {:error, String.trim(error)}
+          {error, _} ->
+            if String.contains?(error, "repository not found") or String.contains?(error, "does not exist") do
+              folder = Path.basename(git_path)
+              System.cmd("gh", ["repo", "create", folder, "--private", "--source=.", "--remote=origin"],
+                cd: git_path, stderr_to_stdout: true)
+              case System.cmd("git", ["push", "-u", "origin", "HEAD"], cd: git_path, stderr_to_stdout: true) do
+                {_, 0} -> :ok
+                {error2, _} -> {:error, String.trim(error2)}
+              end
+            else
+              {:error, String.trim(error)}
+            end
         end
 
       _ ->
