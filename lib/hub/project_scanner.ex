@@ -26,15 +26,17 @@ defmodule Hub.ProjectScanner do
       nil -> nil
       parsed ->
         {fly_app, fly_deploy_path} = detect_fly(project_path)
+        vps_app = detect_vps(status_path)
         git_path = find_git_path(project_path)
         Map.merge(parsed, %{
-          folder:         folder,
-          path:           project_path,
-          git_path:       git_path,
-          fly_app:        fly_app,
+          folder:          folder,
+          path:            project_path,
+          git_path:        git_path,
+          fly_app:         fly_app,
           fly_deploy_path: fly_deploy_path,
-          modified_today: status_modified_today?(status_path),
-          git_dirty:      git_dirty?(git_path || project_path)
+          vps_app:         vps_app,
+          modified_today:  status_modified_today?(status_path),
+          git_dirty:       git_dirty?(git_path || project_path)
         })
     end
   end
@@ -85,6 +87,17 @@ defmodule Hub.ProjectScanner do
           end
         _ -> project_path
       end
+    end
+  end
+
+  defp detect_vps(status_path) do
+    case File.read(status_path) do
+      {:ok, content} ->
+        case Regex.run(~r/^\*\*Deploy:\*\*\s+vps:(\S+)/m, content) do
+          [_, app_name] -> app_name
+          _ -> nil
+        end
+      _ -> nil
     end
   end
 

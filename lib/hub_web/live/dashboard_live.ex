@@ -284,6 +284,17 @@ defmodule HubWeb.DashboardLive do
   end
 
   # ---------------------------------------------------------------------------
+  # VPS deploy
+  # ---------------------------------------------------------------------------
+
+  @impl true
+  def handle_event("vps_deploy", %{"folder" => folder, "app" => app, "name" => name}, socket) do
+    cmd = "ssh deploy@2.24.198.100 '/home/deploy/deploy.sh #{app}'"
+    run_in_iterm("/tmp", cmd, folder, name)
+    {:noreply, socket}
+  end
+
+  # ---------------------------------------------------------------------------
   # Deploy button — custom deploy cmd
   # ---------------------------------------------------------------------------
 

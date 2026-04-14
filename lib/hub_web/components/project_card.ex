@@ -100,7 +100,7 @@ defmodule HubWeb.ProjectCard do
         </a>
       </div>
 
-      <%= if @project.fly_app || @project.deploy_cmd do %>
+      <%= if @project.fly_app || @project.vps_app || @project.deploy_cmd do %>
         <div class="flex gap-2">
           <%= if @project.fly_app do %>
             <button
@@ -112,6 +112,18 @@ defmodule HubWeb.ProjectCard do
               class="flex-1 bg-gray-800 hover:bg-violet-900 active:bg-violet-800 text-violet-400 text-xs font-medium py-1.5 rounded-lg transition-colors cursor-pointer border border-gray-700"
             >
               🚀 fly.io
+            </button>
+          <% end %>
+          <%= if @project.vps_app do %>
+            <button
+              phx-click="vps_deploy"
+              phx-value-folder={@project.folder}
+              phx-value-app={@project.vps_app}
+              phx-value-name={@project.name}
+              title={"deploy to VPS — #{@project.vps_app}"}
+              class="flex-1 bg-gray-800 hover:bg-cyan-900 active:bg-cyan-800 text-cyan-400 text-xs font-medium py-1.5 rounded-lg transition-colors cursor-pointer border border-gray-700"
+            >
+              🖥️ VPS
             </button>
           <% end %>
           <%= if @project.deploy_cmd do %>
