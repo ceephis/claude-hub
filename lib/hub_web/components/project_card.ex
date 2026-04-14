@@ -185,17 +185,19 @@ defmodule HubWeb.ProjectCard do
   # Shared helpers
   # ---------------------------------------------------------------------------
 
-  def status_emoji(:active),   do: "🟢"
-  def status_emoji(:planning), do: "🟡"
-  def status_emoji(:paused),   do: "🔴"
-  def status_emoji(:live),     do: "✅"
-  def status_emoji(_),         do: "⚪"
+  def status_emoji(:active),      do: "🟢"
+  def status_emoji(:planning),    do: "🟡"
+  def status_emoji(:paused),      do: "🔴"
+  def status_emoji(:live),        do: "✅"
+  def status_emoji(:beta),        do: "🧪"
+  def status_emoji(_),            do: "⚪"
 
-  defp status_color(:active),   do: "bg-green-900 text-green-300"
-  defp status_color(:planning), do: "bg-yellow-900 text-yellow-300"
-  defp status_color(:paused),   do: "bg-red-900 text-red-300"
-  defp status_color(:live),     do: "bg-blue-900 text-blue-300"
-  defp status_color(_),         do: "bg-gray-800 text-gray-300"
+  defp status_color(:active),      do: "bg-green-900 text-green-300"
+  defp status_color(:planning),    do: "bg-yellow-900 text-yellow-300"
+  defp status_color(:paused),      do: "bg-red-900 text-red-300"
+  defp status_color(:live),        do: "bg-blue-900 text-blue-300"
+  defp status_color(:beta),        do: "bg-purple-900 text-purple-300"
+  defp status_color(_),            do: "bg-gray-800 text-gray-300"
 
   defp status_label(status) do
     case String.split(status, " ", parts: 2) do

@@ -71,8 +71,10 @@ defmodule Hub.StatusParser do
         cond do
           String.contains?(status, "🟢") -> :active
           String.contains?(status, "🟡") -> :planning
-          String.contains?(status, "🔴") -> :paused
+          String.contains?(status, "🔴") or String.contains?(status, "⏸️") -> :paused
           String.contains?(status, "✅") -> :live
+          String.contains?(status, "🔵") -> :active
+          String.contains?(status, "🧪") -> :beta
           true -> :unknown
         end
     end
