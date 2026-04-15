@@ -295,6 +295,38 @@ defmodule HubWeb.DashboardLive do
   end
 
   # ---------------------------------------------------------------------------
+  # VPS provision — new app, step 1: prompt for domain via JS hook
+  # ---------------------------------------------------------------------------
+
+  @impl true
+  def handle_event("vps_provision", %{"folder" => folder, "name" => name, "app" => app, "repo" => repo}, socket) do
+    {:noreply, push_event(socket, "prompt_provision", %{folder: folder, name: name, app: app, repo: repo})}
+  end
+
+  # ---------------------------------------------------------------------------
+  # VPS provision — step 2: domain entered, auto-assign port and run provision.sh
+  # ---------------------------------------------------------------------------
+
+  @impl true
+  def handle_event("domain_entered", %{"folder" => folder, "domain" => domain, "repo" => repo, "app" => app}, socket) do
+    {port_output, _} = System.cmd(
+      "ssh",
+      ["deploy@2.24.198.100", "grep -rh PORT= /home/deploy/apps/*/.env 2>/dev/null | grep -oP '\\d+' | sort -n | tail -1"],
+      stderr_to_stdout: true
+    )
+
+    next_port = case Integer.parse(String.trim(port_output)) do
+      {p, _} -> p + 100
+      :error  -> 4100
+    end
+
+    script = Path.expand("~/Desktop/Claude/vps/dev/scripts/provision.sh")
+    cmd = "source ~/.zshrc && #{script} #{app} #{next_port} #{domain} #{repo}"
+    run_in_iterm("/tmp", cmd, folder, "Provision #{app}")
+    {:noreply, socket}
+  end
+
+  # ---------------------------------------------------------------------------
   # Deploy button — custom deploy cmd
   # ---------------------------------------------------------------------------
 

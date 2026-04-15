@@ -100,7 +100,23 @@ defmodule HubWeb.ProjectCard do
         </a>
       </div>
 
-      <%= if @project.fly_app || @project.vps_app || @project.deploy_cmd do %>
+      <%= if @project.is_phoenix && !@project.vps_app do %>
+        <div class="flex gap-2">
+          <button
+            phx-click="vps_provision"
+            phx-value-folder={@project.folder}
+            phx-value-name={@project.name}
+            phx-value-app={@project.phoenix_app_name}
+            phx-value-repo={@project.github_repo}
+            title="Provision on VPS — sets up DB, nginx, SSL, DNS"
+            class="flex-1 bg-gray-800 hover:bg-teal-900 active:bg-teal-800 text-teal-400 text-xs font-medium py-1.5 rounded-lg transition-colors cursor-pointer border border-gray-700"
+          >
+            🖥️ Provision
+          </button>
+        </div>
+      <% end %>
+
+      <%= if @project.fly_app || @project.vps_app do %>
         <div class="flex gap-2">
           <%= if @project.fly_app do %>
             <button
@@ -124,19 +140,6 @@ defmodule HubWeb.ProjectCard do
               class="flex-1 bg-gray-800 hover:bg-cyan-900 active:bg-cyan-800 text-cyan-400 text-xs font-medium py-1.5 rounded-lg transition-colors cursor-pointer border border-gray-700"
             >
               🖥️ VPS
-            </button>
-          <% end %>
-          <%= if @project.deploy_cmd do %>
-            <button
-              phx-click="run_deploy"
-              phx-value-folder={@project.folder}
-              phx-value-path={@project.path}
-              phx-value-name={@project.name}
-              phx-value-cmd={@project.deploy_cmd}
-              title={@project.deploy_cmd}
-              class="flex-1 bg-gray-800 hover:bg-emerald-900 active:bg-emerald-800 text-emerald-400 text-xs font-medium py-1.5 rounded-lg transition-colors cursor-pointer border border-gray-700"
-            >
-              ⚡ Deploy
             </button>
           <% end %>
         </div>

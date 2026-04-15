@@ -28,15 +28,20 @@ defmodule Hub.ProjectScanner do
         {fly_app, fly_deploy_path} = detect_fly(project_path)
         vps_app = detect_vps(status_path)
         git_path = find_git_path(project_path)
+        {is_phoenix, phoenix_app_name} = detect_phoenix_info(project_path)
+        github_repo = detect_github_repo(git_path || project_path)
         Map.merge(parsed, %{
-          folder:          folder,
-          path:            project_path,
-          git_path:        git_path,
-          fly_app:         fly_app,
-          fly_deploy_path: fly_deploy_path,
-          vps_app:         vps_app,
-          modified_today:  status_modified_today?(status_path),
-          git_dirty:       git_dirty?(git_path || project_path)
+          folder:           folder,
+          path:             project_path,
+          git_path:         git_path,
+          fly_app:          fly_app,
+          fly_deploy_path:  fly_deploy_path,
+          vps_app:          vps_app,
+          is_phoenix:       is_phoenix,
+          phoenix_app_name: phoenix_app_name,
+          github_repo:      github_repo,
+          modified_today:   status_modified_today?(status_path),
+          git_dirty:        git_dirty?(git_path || project_path)
         })
     end
   end
@@ -90,17 +95,6 @@ defmodule Hub.ProjectScanner do
     end
   end
 
-  defp detect_vps(status_path) do
-    case File.read(status_path) do
-      {:ok, content} ->
-        case Regex.run(~r/^\*\*Deploy:\*\*\s+vps:(\S+)/m, content) do
-          [_, app_name] -> app_name
-          _ -> nil
-        end
-      _ -> nil
-    end
-  end
-
   defp detect_fly(project_path) do
     toml =
       Path.wildcard(Path.join(project_path, "fly.toml")) ++
@@ -122,4 +116,49 @@ defmodule Hub.ProjectScanner do
         {app_name, Path.dirname(path)}
     end
   end
+
+  defp detect_phoenix_info(project_path) do
+    mix_file =
+      (Path.wildcard(Path.join(project_path, "mix.exs")) ++
+       Path.wildcard(Path.join(project_path, "*/mix.exs")))
+      |> List.first()
+
+    case mix_file do
+      nil -> {false, nil}
+      path ->
+        case File.read(path) do
+          {:ok, content} ->
+            app_name = case Regex.run(~r/app:\s+:(\w+)/, content) do
+              [_, name] -> name
+              _ -> nil
+            end
+            {true, app_name}
+          _ -> {false, nil}
+        end
+    end
+  end
+
+  defp detect_github_repo(git_path) do
+    case System.cmd("git", ["remote", "get-url", "origin"], cd: git_path, stderr_to_stdout: true) do
+      {url, 0} ->
+        url = String.trim(url)
+        case Regex.run(~r|github\.com[:/](.+?)(?:\.git)?$|, url) do
+          [_, repo] -> repo
+          _ -> nil
+        end
+      _ -> nil
+    end
+  end
+
+  defp detect_vps(status_path) do
+    case File.read(status_path) do
+      {:ok, content} ->
+        case Regex.run(~r/^\*\*VPS:\*\*\s+(\S+)/m, content) do
+          [_, app_name] -> app_name
+          _ -> nil
+        end
+      _ -> nil
+    end
+  end
+
 end

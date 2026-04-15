@@ -25,9 +25,39 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+
+const Hooks = {
+  ProvisionModal: {
+    mounted() {
+      this.handleEvent("prompt_provision", ({folder, name, app, repo}) => {
+        let domain = window.prompt(`Domain for ${name}:\n(e.g. signflow.com)`)
+        if (!domain || !domain.trim()) return
+        domain = domain.trim()
+
+        let finalRepo = repo
+        if (!finalRepo) {
+          finalRepo = window.prompt(`GitHub repo for ${name}:\n(e.g. ceephis/signflow)`)
+          if (!finalRepo || !finalRepo.trim()) return
+          finalRepo = finalRepo.trim()
+        }
+
+        let finalApp = app
+        if (!finalApp) {
+          finalApp = window.prompt(`App name for ${name}:\n(e.g. signflow)`)
+          if (!finalApp || !finalApp.trim()) return
+          finalApp = finalApp.trim()
+        }
+
+        this.pushEvent("domain_entered", {folder, domain, repo: finalRepo, app: finalApp})
+      })
+    }
+  }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
+  hooks: Hooks,
 })
 
 // Show progress bar on live navigation and form submits
