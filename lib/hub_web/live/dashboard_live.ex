@@ -309,19 +309,24 @@ defmodule HubWeb.DashboardLive do
 
   @impl true
   def handle_event("domain_entered", %{"folder" => folder, "domain" => domain, "repo" => repo, "app" => app}, socket) do
-    {port_output, _} = System.cmd(
-      "ssh",
-      ["deploy@2.24.198.100", "grep -rh PORT= /home/deploy/apps/*/.env 2>/dev/null | grep -oP '\\d+' | sort -n | tail -1"],
-      stderr_to_stdout: true
-    )
+    registry_path = Path.expand("~/Desktop/Claude/vps/port_registry.txt")
 
-    next_port = case Integer.parse(String.trim(port_output)) do
-      {p, _} -> p + 100
-      :error  -> 4100
-    end
+    next_port =
+      case File.read(registry_path) do
+        {:ok, contents} ->
+          case Regex.run(~r/^#{app}:(\d+)$/m, contents) do
+            [_, port] ->
+              String.to_integer(port)
+            nil ->
+              # App not in registry — take max port + 100
+              ports = Regex.scan(~r/:(\d+)/, contents) |> Enum.map(fn [_, p] -> String.to_integer(p) end)
+              (Enum.max(ports, fn -> 4000 end)) + 100
+          end
+        _ -> 4100
+      end
 
     script = Path.expand("~/Desktop/Claude/vps/dev/scripts/provision.sh")
-    cmd = "source ~/.zshrc && #{script} #{app} #{next_port} #{domain} #{repo}"
+    cmd = "source ~/.zshrc && #{script} #{app} #{next_port} #{domain} #{repo} '#{folder}'"
     run_in_iterm("/tmp", cmd, folder, "Provision #{app}")
     {:noreply, socket}
   end
