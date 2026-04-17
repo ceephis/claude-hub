@@ -30,6 +30,16 @@ const Hooks = {
   ProvisionModal: {
     mounted() {
       this.handleEvent("prompt_provision", ({folder, name, app, repo}) => {
+        const ready = window.confirm(
+          `Before provisioning ${name}, confirm:\n\n` +
+          `☐ Added the domain to Brevo\n` +
+          `  (Settings → Senders & Domains → Add domain → verify via Cloudflare)\n\n` +
+          `☐ Fixed mailer from address\n` +
+          `  (replace contact@example.com with noreply@yourdomain.com in lib/)\n\n` +
+          `Ready to continue?`
+        )
+        if (!ready) return
+
         let domain = window.prompt(`Domain for ${name}:\n(e.g. signflow.com)`)
         if (!domain || !domain.trim()) return
         domain = domain.trim()
