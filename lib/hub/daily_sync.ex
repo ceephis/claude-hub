@@ -61,7 +61,7 @@ defmodule Hub.DailySync do
       end
 
     pushed =
-      if commit_status == :committed do
+      if commit_status in [:committed, :clean] do
         try_push(git_path)
       else
         nil

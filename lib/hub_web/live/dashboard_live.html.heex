@@ -143,7 +143,7 @@
                   end %>
                 </span>
                 <span>{r.name}</span>
-                <%= if r.pushed == :ok do %>
+                <%= if r.pushed == :ok and r.status == :committed do %>
                   <span class="text-green-600">↑</span>
                 <% end %>
                 <%= if r.pushed == :no_remote do %>
