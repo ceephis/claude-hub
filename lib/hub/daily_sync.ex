@@ -5,6 +5,10 @@ defmodule Hub.DailySync do
   one initialized locally and on GitHub before committing.
   Returns a list of result maps.
   """
+
+  # GITHUB_TOKEN (set by Claude Code) is read-only and blocks pushes — unset it for all git ops.
+  @git_env [{"GITHUB_TOKEN", nil}]
+
   def sync_today(pinned_folders \\ []) do
     all_projects = Hub.ProjectScanner.scan()
 
@@ -21,7 +25,7 @@ defmodule Hub.DailySync do
   defp sync_project(project, force_init) do
     git_path = project.git_path || project.path
 
-    case System.cmd("git", ["rev-parse", "--git-dir"], cd: git_path, stderr_to_stdout: true) do
+    case git(["rev-parse", "--git-dir"], git_path) do
       {_, 0} -> do_commit_and_push(project, git_path)
       _ ->
         if force_init do
@@ -33,10 +37,10 @@ defmodule Hub.DailySync do
   end
 
   defp do_init_and_push(project, git_path) do
-    System.cmd("git", ["init"], cd: git_path, stderr_to_stdout: true)
-    System.cmd("git", ["branch", "-M", "main"], cd: git_path, stderr_to_stdout: true)
+    git(["init"], git_path)
+    git(["branch", "-M", "main"], git_path)
 
-    case System.cmd("git", ["remote", "get-url", "origin"], cd: git_path, stderr_to_stdout: true) do
+    case git(["remote", "get-url", "origin"], git_path) do
       {_, 0} -> :ok
       _ ->
         System.cmd("gh", ["repo", "create", project.folder, "--private", "--source=.", "--remote=origin"],
@@ -51,10 +55,10 @@ defmodule Hub.DailySync do
     msg_file = "/tmp/hub_sync_#{project.folder}.txt"
     File.write!(msg_file, "Daily sync #{date_str}")
 
-    System.cmd("git", ["add", "-A"], cd: git_path, stderr_to_stdout: true)
+    git(["add", "-A"], git_path)
 
     commit_status =
-      case System.cmd("git", ["commit", "-F", msg_file], cd: git_path, stderr_to_stdout: true) do
+      case git(["commit", "-F", msg_file], git_path) do
         {_, 0} -> :committed
         {output, _} ->
           if String.contains?(output, "nothing to commit"), do: :clean, else: :commit_error
@@ -71,16 +75,16 @@ defmodule Hub.DailySync do
   end
 
   defp try_push(git_path) do
-    case System.cmd("git", ["remote", "get-url", "origin"], cd: git_path, stderr_to_stdout: true) do
+    case git(["remote", "get-url", "origin"], git_path) do
       {_, 0} ->
-        case System.cmd("git", ["push", "-u", "origin", "HEAD"], cd: git_path, stderr_to_stdout: true) do
+        case git(["push", "-u", "origin", "HEAD"], git_path) do
           {_, 0} -> :ok
           {error, _} ->
             if String.contains?(error, "repository not found") or String.contains?(error, "does not exist") do
               folder = Path.basename(git_path)
               System.cmd("gh", ["repo", "create", folder, "--private", "--source=.", "--remote=origin"],
                 cd: git_path, stderr_to_stdout: true)
-              case System.cmd("git", ["push", "-u", "origin", "HEAD"], cd: git_path, stderr_to_stdout: true) do
+              case git(["push", "-u", "origin", "HEAD"], git_path) do
                 {_, 0} -> :ok
                 {error2, _} -> {:error, String.trim(error2)}
               end
@@ -92,5 +96,9 @@ defmodule Hub.DailySync do
       _ ->
         :no_remote
     end
+  end
+
+  defp git(args, path) do
+    System.cmd("git", args, cd: path, stderr_to_stdout: true, env: @git_env)
   end
 end
