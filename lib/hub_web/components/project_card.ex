@@ -214,6 +214,7 @@ defmodule HubWeb.ProjectCard do
   defp status_color(:beta),        do: "bg-purple-900 text-purple-300"
   defp status_color(_),            do: "bg-gray-800 text-gray-300"
 
+  defp status_label(nil), do: ""
   defp status_label(status) do
     case String.split(status, " ", parts: 2) do
       [_emoji, rest] -> rest
