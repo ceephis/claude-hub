@@ -153,6 +153,14 @@ defmodule HubWeb.DashboardLive do
   end
 
   @impl true
+  def handle_event("move_group", %{"id" => id, "dir" => dir}, socket) do
+    groups  = Hub.Groups.load()
+    updated = Hub.Groups.move_group(groups, id, String.to_existing_atom(dir))
+    Hub.Groups.save(updated)
+    {:noreply, assign(socket, load_data())}
+  end
+
+  @impl true
   def handle_event("cancel_edit", _params, socket) do
     {:noreply,
      socket

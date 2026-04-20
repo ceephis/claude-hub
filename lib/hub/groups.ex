@@ -64,6 +64,27 @@ defmodule Hub.Groups do
     |> Enum.map(fn g -> %{g | groups: delete_group(g.groups, id)} end)
   end
 
+  def move_group(groups, id, direction) do
+    groups
+    |> move_in_list(id, direction)
+    |> Enum.map(fn g -> %{g | groups: move_group(g.groups, id, direction)} end)
+  end
+
+  defp move_in_list(list, id, direction) do
+    case Enum.find_index(list, &(&1.id == id)) do
+      nil -> list
+      idx ->
+        swap = if direction == :up, do: idx - 1, else: idx + 1
+        if swap < 0 or swap >= length(list) do
+          list
+        else
+          list
+          |> List.replace_at(idx, Enum.at(list, swap))
+          |> List.replace_at(swap, Enum.at(list, idx))
+        end
+    end
+  end
+
   def move_project(groups, folder, to_id) do
     groups
     |> remove_project_everywhere(folder)

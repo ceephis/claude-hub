@@ -20,7 +20,7 @@ defmodule HubWeb.GroupAccordion do
   def group_list(assigns) do
     ~H"""
     <div class="space-y-1">
-      <%= for group <- @groups do %>
+      <%= for {group, i} <- Enum.with_index(@groups) do %>
         <.group_node
           group={group}
           expanded={@expanded}
@@ -31,6 +31,8 @@ defmodule HubWeb.GroupAccordion do
           group_options={@group_options}
           pinned_for_sync={@pinned_for_sync}
           depth={0}
+          is_first={i == 0}
+          is_last={i == length(@groups) - 1}
         />
       <% end %>
 
@@ -60,6 +62,8 @@ defmodule HubWeb.GroupAccordion do
 
   attr :pinned_for_sync, :any,     default: nil
   attr :depth,           :integer, default: 0
+  attr :is_first,        :boolean, default: false
+  attr :is_last,         :boolean, default: false
 
   def group_node(assigns) do
     assigns =
@@ -119,6 +123,22 @@ defmodule HubWeb.GroupAccordion do
           <%!-- Action buttons --%>
           <div class="flex items-center gap-0.5 shrink-0">
             <button
+              phx-click="move_group"
+              phx-value-id={@group.id}
+              phx-value-dir="up"
+              title="Move up"
+              disabled={@is_first}
+              class={["text-xs px-1 py-0.5 rounded", if(@is_first, do: "text-gray-700 cursor-default", else: "text-gray-500 hover:text-white hover:bg-gray-700")]}
+            >↑</button>
+            <button
+              phx-click="move_group"
+              phx-value-id={@group.id}
+              phx-value-dir="down"
+              title="Move down"
+              disabled={@is_last}
+              class={["text-xs px-1 py-0.5 rounded", if(@is_last, do: "text-gray-700 cursor-default", else: "text-gray-500 hover:text-white hover:bg-gray-700")]}
+            >↓</button>
+            <button
               phx-click="start_add_group"
               phx-value-parent_id={@group.id}
               title="Add subgroup"
@@ -169,7 +189,7 @@ defmodule HubWeb.GroupAccordion do
             <% end %>
 
             <%!-- Child group rows --%>
-            <%= for child <- @group.groups do %>
+            <%= for {child, ci} <- Enum.with_index(@group.groups) do %>
               <.group_node
                 group={child}
                 expanded={@expanded}
@@ -180,6 +200,8 @@ defmodule HubWeb.GroupAccordion do
                 group_options={@group_options}
                 pinned_for_sync={@pinned_for_sync}
                 depth={@depth + 1}
+                is_first={ci == 0}
+                is_last={ci == length(@group.groups) - 1}
               />
             <% end %>
 
